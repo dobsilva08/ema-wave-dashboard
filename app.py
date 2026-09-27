@@ -603,7 +603,21 @@ st.dataframe(
 )
 
 st.subheader("Gráficos para acompanhamento")
-selected = st.selectbox("Ativo", list(frames))
+graph_tickers = list(frames)
+preferred_ticker = (
+    selected_us_etfs[-1]
+    if selected_us_etfs
+    else selected_etfs[-1] if selected_etfs else None
+)
+if preferred_ticker in graph_tickers:
+    graph_tickers.remove(preferred_ticker)
+    graph_tickers.insert(0, preferred_ticker)
+selected = st.selectbox(
+    "Ativo nos três gráficos",
+    graph_tickers,
+    help="Os ativos selecionados e com cotações disponíveis aparecem nesta lista.",
+)
+st.caption(f"{len(graph_tickers)} ativos com dados disponíveis para os gráficos.")
 
 def render_wave_chart(label: str, frame: pd.DataFrame, ticker: str, candles: int) -> None:
     st.markdown(f"#### {label}")
