@@ -408,6 +408,48 @@ US_ETF_TICKERS = [
     "CVNY",
 ]
 
+# Classificações publicadas pela Renova Invest para os ETFs da B3.
+B3_ETF_CATEGORY_BY_TICKER = {}
+_B3_CATEGORY_TICKERS = {
+    "Internacional": "CHIP11.SA ARGE11.SA HTEK11.SA QQQQ11.SA UTEC11.SA USTK11.SA SPXR11.SA NASD11.SA TECK11.SA SVAL11.SA BXPO11.SA MILL11.SA REVE11.SA VWRA11.SA SPXB11.SA ACWI11.SA WRLD11.SA GPUS11.SA SPXI11.SA IVVB11.SA TECX11.SA QQQI11.SA SPYI11.SA ALUG11.SA IWMI11.SA PKIN11.SA RICO11.SA XINA11.SA JOGO11.SA QETH11.SA GDIV11.SA GXUS11.SA IVWO11.SA SPBZ11.SA T10R11.SA",
+    "Commodities": "CMDB11.SA BBOI11.SA GLDX11.SA GOLD11.SA CORN11.SA AGRI11.SA AURO11.SA NUCL11.SA GLDI11.SA GOLB11.SA OURO11.SA RARA11.SA SLVR11.SA",
+    "Ações Brasil": "ELAS11.SA PIBB11.SA BBOV11.SA BOVV11.SA BOVA11.SA BOVX11.SA BOVB11.SA IBOB11.SA BRAX11.SA BOVS11.SA XBOV11.SA GOVE11.SA AUVP11.SA LVOL11.SA FIND11.SA DIVO11.SA MATB11.SA BMMT11.SA NSDV11.SA ECOO11.SA ISUS11.SA BRXC11.SA DVER11.SA BBSD11.SA BEST11.SA BREW11.SA BDOM11.SA NDIV11.SA ESGB11.SA GENB11.SA TRIG11.SA SMAL11.SA SMAC11.SA SMAB11.SA SCVB11.SA HIGH11.SA CASA11.SA BTER11.SA PIPE11.SA QLBR11.SA",
+    "Setorial": "UTLL11.SA BDEF11.SA BCIC11.SA LFIX11.SA",
+    "Renda Fixa": "GOAT11.SA FIXX11.SA USDB11.SA BNDX11.SA 5PRE11.SA AREA11.SA B5P211.SA BLFT11.SA BOL511.SA BPRE11.SA CLOB11.SA DEBB11.SA FIXA11.SA GICP11.SA GLFT11.SA GPCA11.SA HYBR11.SA IB5M11.SA IDKA11.SA IMAB11.SA IRFM11.SA LFIN11.SA LFTB11.SA LFTS11.SA LIQB11.SA LLFT11.SA LTBX11.SA LTNB11.SA MARG11.SA NTNS11.SA PACB11.SA PACC11.SA POSB11.SA",
+    "Imobiliário": "XFIX11.SA HERT11.SA",
+    "Câmbio": "DOLA11.SA DOLB11.SA DOLX11.SA",
+    "Cripto": "GBTC11.SA BITC11.SA HODL11.SA QBTC11.SA BITH11.SA BITI11.SA NBIT11.SA DEFI11.SA HASH11.SA QDFI11.SA ETHE11.SA FOMO11.SA EETH11.SA CRPT11.SA SOLH11.SA COIN11.SA QSOL11.SA XRPH11.SA WEB311.SA META11.SA ETHY11.SA GBIT11.SA",
+}
+for _category, _tickers in _B3_CATEGORY_TICKERS.items():
+    B3_ETF_CATEGORY_BY_TICKER.update({ticker: _category for ticker in _tickers.split()})
+
+US_ETF_CATEGORY_TICKERS = {
+    "Cripto": "IBIT BTCI BITA BITO YBTC YBIT",
+    "Commodities": "IAU GLD GLDM SLV COPX GDX REMX URA DBC BNO BWET USOI",
+    "Imobiliário": "VNQ SCHH VNQI XLRE JPRE",
+    "Renda fixa": "TFLO SGOV SHY TLT BIL BND AGG SHV VCLT USHY GOVT LQD JPST VCIT VTIP BOXX PFFD EMB IBTM IGBH IGSB JAAA HYGH",
+    "Dividendos e opções": "JEPI JEPQ SCHD SPHD DHS QYLD SLVO DIVO VIG VYM VYMI NVDY MSTY SDIV TSLY AMDY ULTY PLTY CONY YMAX AMDW HOOY DIV HDV QQQY XQQI XDTE XLEI COYY IWMW MRNY NVII HYGW USOY SOXY AMYY XYLD RYLD KBWD YMAG GPTY SNOY ARMW OARK YSPC GPIQ GPIX SPYD AIPI SPYT HOOW TSMY QDTY NVYY CVNY",
+    "Estratégias alavancadas": "SOXL TQQQ UPRO MULL",
+    "Setorial e temático": "SMH SOXX QTUM VGT AIQ CIBR XLK XLE GRID DRAM XLV DTCR MAGS XLU XLF VDE IBB BOTZ CHAT XLI VHT XLP ARTY PAVE IYW FTEC XBI SIL SOXQ HACK IGPT PSI ICLN ARKQ ROBO LIT AIPO ITA IXN FLSW",
+    "Internacional": "IXUS VXUS VEA VWO VGK IEMG EWZ AVDV FEZ MCHI EWY IEFA IEUR IEUS EEM EWU EFV SCHF SCHY DGS AVES EEMS VEU VIGI VPL INDA WSML EXUS",
+}
+
+
+def classify_asset(ticker: str) -> tuple[str, str]:
+    """Return market and indicative segment for each monitored ticker."""
+    ticker = ticker.upper()
+    if ticker.endswith(".SA"):
+        if ticker in B3_ETF_CATEGORY_BY_TICKER:
+            return "Brasil", B3_ETF_CATEGORY_BY_TICKER[ticker]
+        return "Brasil", "Ações individuais"
+    if ticker in US_ETF_TICKERS:
+        for category, symbols in US_ETF_CATEGORY_TICKERS.items():
+            if ticker in symbols.split():
+                return "Estados Unidos", category
+        return "Estados Unidos", "Ações diversificadas"
+    return "Estados Unidos", "Ações individuais"
+
+
 @st.cache_data(ttl=1800, show_spinner=False)
 def get_daily_data(ticker: str) -> pd.DataFrame:
     data = yf.download(
@@ -591,9 +633,21 @@ if not rows:
     st.stop()
 
 table = pd.DataFrame(rows)
+asset_labels = {ticker: classify_asset(ticker) for ticker in table["Ativo"]}
+table["Mercado"] = table["Ativo"].map(lambda ticker: asset_labels[ticker][0])
+table["Categoria"] = table["Ativo"].map(lambda ticker: asset_labels[ticker][1])
 st.subheader("Visão geral")
+filter_col1, filter_col2 = st.columns(2)
+with filter_col1:
+    selected_market = st.selectbox("Filtrar por mercado", ["Todos"] + sorted(table["Mercado"].unique().tolist()))
+market_table = table if selected_market == "Todos" else table[table["Mercado"] == selected_market]
+with filter_col2:
+    category_options = sorted(market_table["Categoria"].unique().tolist())
+    selected_category = st.selectbox("Filtrar por categoria", ["Todas"] + category_options)
+filtered_table = market_table if selected_category == "Todas" else market_table[market_table["Categoria"] == selected_category]
+st.caption(f"{len(filtered_table)} de {len(table)} ativos exibidos")
 st.dataframe(
-    table.drop(columns=["Inclinação 1D %/candle", "Inclinação 1S %/candle", "Inclinação 1M %/candle"]),
+    filtered_table.drop(columns=["Inclinação 1D %/candle", "Inclinação 1S %/candle", "Inclinação 1M %/candle"]),
     use_container_width=True,
     hide_index=True,
     column_config={
@@ -603,7 +657,10 @@ st.dataframe(
 )
 
 st.subheader("Gráficos para acompanhamento")
-graph_tickers = list(frames)
+graph_tickers = [ticker for ticker in filtered_table["Ativo"].tolist() if ticker in frames]
+if not graph_tickers:
+    st.info("Nenhum ativo com dados disponíveis corresponde aos filtros escolhidos.")
+    st.stop()
 preferred_ticker = (
     selected_us_etfs[-1]
     if selected_us_etfs
