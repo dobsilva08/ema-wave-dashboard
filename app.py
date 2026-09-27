@@ -105,6 +105,8 @@ def analyze(ticker: str, daily: pd.DataFrame, threshold: float, tolerance: float
         "Leitura": setup,
         "Atualizado até": daily_w.index[-1].date().isoformat(),
         "Diário": daily_w,
+        "Semanal": weekly_w,
+        "Mensal": monthly_w,
     }
 
 
@@ -153,8 +155,12 @@ with st.spinner("Buscando cotações e calculando as ondas..."):
                 failures.append(ticker)
                 continue
             result = analyze(ticker, daily, slope_threshold, pullback_tolerance)
-            rows.append({k: v for k, v in result.items() if k != "Diário"})
-            frames[ticker] = result["Diário"]
+            rows.append({k: v for k, v in result.items() if k not in {"Diário", "Semanal", "Mensal"}})
+            frames[ticker] = {
+                "Diário": result["Diário"],
+                "Semanal": result["Semanal"],
+                "Mensal": result["Mensal"],
+            }
         except Exception:
             failures.append(ticker)
 
@@ -176,18 +182,54 @@ st.dataframe(
     },
 )
 
-st.subheader("Gráfico diário")
+st.subheader("Gráficos para acompanhamento")
 selected = st.selectbox("Ativo", list(frames))
-chart = frames[selected].tail(250)
-fig = go.Figure()
-fig.add_trace(go.Candlestick(
-    x=chart.index, open=chart["Open"], high=chart["High"], low=chart["Low"], close=chart["Close"], name=selected
-))
-fig.add_trace(go.Scatter(x=chart.index, y=chart["Wave High"], name="EMA 34 máxima", line={"color": "#4c78a8", "width": 1}))
-fig.add_trace(go.Scatter(x=chart.index, y=chart["Wave Low"], name="EMA 34 mínima", line={"color": "#4c78a8", "width": 1}, fill="tonexty", fillcolor="rgba(76,120,168,0.12)"))
-fig.add_trace(go.Scatter(x=chart.index, y=chart["Wave Mid"], name="EMA 34 fechamento", line={"color": "#f58518", "width": 1.5}))
-fig.update_layout(height=620, xaxis_rangeslider_visible=False, margin={"l": 10, "r": 10, "t": 25, "b": 10}, legend_orientation="h")
-st.plotly_chart(fig, use_container_width=True)
+
+def render_wave_chart(label: str, frame: pd.DataFrame, ticker: str, candles: int) -> None:
+    st.markdown(f"#### {label}")
+    chart = frame.tail(candles)
+    fig = go.Figure()
+    fig.add_trace(go.Candlestick(
+        x=chart.index,
+        open=chart["Open"],
+        high=chart["High"],
+        low=chart["Low"],
+        close=chart["Close"],
+        name=ticker,
+    ))
+    fig.add_trace(go.Scatter(
+        x=chart.index,
+        y=chart["Wave High"],
+        name="EMA 34 máxima",
+        line={"color": "#4c78a8", "width": 1},
+    ))
+    fig.add_trace(go.Scatter(
+        x=chart.index,
+        y=chart["Wave Low"],
+        name="EMA 34 mínima",
+        line={"color": "#4c78a8", "width": 1},
+        fill="tonexty",
+        fillcolor="rgba(76,120,168,0.12)",
+    ))
+    fig.add_trace(go.Scatter(
+        x=chart.index,
+        y=chart["Wave Mid"],
+        name="EMA 34 fechamento",
+        line={"color": "#f58518", "width": 1.5},
+    ))
+    fig.update_layout(
+        height=480,
+        xaxis_rangeslider_visible=False,
+        margin={"l": 10, "r": 10, "t": 25, "b": 10},
+        legend_orientation="h",
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
+selected_frames = frames[selected]
+render_wave_chart("1D · Diário", selected_frames["Diário"], selected, 250)
+render_wave_chart("1S · Semanal", selected_frames["Semanal"], selected, 180)
+render_wave_chart("1M · Mensal", selected_frames["Mensal"], selected, 120)
 
 with st.expander("Critérios e limitações"):
     st.markdown(
