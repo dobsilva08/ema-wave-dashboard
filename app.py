@@ -2,6 +2,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 import yfinance as yf
+from concurrent.futures import ThreadPoolExecutor
 
 
 st.set_page_config(page_title="EMA Wave | Monitor", page_icon="📈", layout="wide")
@@ -610,9 +611,11 @@ rows = []
 frames = {}
 failures = []
 with st.spinner("Buscando cotações e calculando as ondas..."):
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        daily_by_ticker = dict(zip(tickers, executor.map(get_daily_data, tickers)))
     for ticker in tickers:
         try:
-            daily = get_daily_data(ticker)
+            daily = daily_by_ticker[ticker]
             if daily.empty:
                 failures.append(ticker)
                 continue
